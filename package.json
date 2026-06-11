@@ -19,6 +19,9 @@
   ],
   "author": "Pathum Rajapaksha",
   "license": "MIT",
+  "engines": {
+    "node": "20.x"
+  },
   "dependencies": {
     "express": "^4.19.2",
     "@distube/ytdl-core": "^4.15.1"
