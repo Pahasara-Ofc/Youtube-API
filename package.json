@@ -1,7 +1,7 @@
 {
-  "name": "yt-mp3-api",
+  "name": "private-yt-mp3-api",
   "version": "1.0.0",
-  "description": "A private high-speed YouTube MP3/Audio downloader API using Express.js and yt-dlp.",
+  "description": "A private Vercel-friendly YouTube MP3 downloader API using Express.js and @distube/ytdl-core.",
   "main": "server.js",
   "scripts": {
     "start": "node server.js",
@@ -13,13 +13,15 @@
     "api",
     "mp3",
     "express",
-    "yt-dlp",
-    "whatsapp-bot-helper"
+    "ytdl-core",
+    "vercel",
+    "serverless"
   ],
-  "author": "NELUMI-MD",
+  "author": "Pathum Rajapaksha",
   "license": "MIT",
   "dependencies": {
     "express": "^4.19.2",
-    "yt-dlp-exec": "^1.0.2"
+    "@distube/ytdl-core": "^4.15.1"
   }
+}
 }
