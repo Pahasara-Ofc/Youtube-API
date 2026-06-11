@@ -1,5 +1,5 @@
 const express = require('express');
-const ytDlp = require('yt-dlp-exec');
+const ytdl = require('@distube/ytdl-core'); // Vercel එකට ගැළපෙන Pure JS YouTube Library එක
 const app = express();
 const PORT = process.env.PORT || 3000;
 
@@ -25,8 +25,8 @@ app.get('/', (req, res) => {
         </head>
         <body>
             <div class="container">
-                <h1>🎵 PRIVATE YT-MP3 API ONLINE</h1>
-                <p>ඔන්න මචං API එක වර්සෙල් එකේ සාර්ථකව වැඩ! 🚀</p>
+                <h1>🎵 PRIVATE YT-MP3 API ONLINE (VERCEL)</h1>
+                <p>ඔන්න මචං Python නැතිවම වැඩ කරන API එක වර්සෙල් එකේ සිරාවටම ඔන්ලයින්! 🚀</p>
                 <div class="code-box">
                     💡 Usage:<br>
                     your-vercel-url.app/api/ytmp3?url=YOUR_YOUTUBE_URL
@@ -39,13 +39,13 @@ app.get('/', (req, res) => {
 });
 
 // =========================================================================
-// ⚡ 2. YT-MP3 DOWNLOADER ENDPOINT (සිරාම වැඩ කෑල්ල)
+// ⚡ 2. YT-MP3 DOWNLOADER ENDPOINT (Vercel-Friendly)
 // =========================================================================
 app.get('/api/ytmp3', async (req, res) => {
     try {
         const videoUrl = req.query.url;
 
-        // ❌ යූසර් ලින්ක් එකක් දීලා නැත්නම් හෝ හිස් නම්
+        // ❌ යූසර් ලින්ක් එකක් දීලා නැත්නම්
         if (!videoUrl) {
             return res.status(400).json({
                 status: false,
@@ -56,46 +56,44 @@ app.get('/api/ytmp3', async (req, res) => {
 
         const startTime = Date.now();
 
-        // 🔥 yt-dlp එකෙන් YouTube එකෙන් විස්තර විතරක් ලබා ගැනීම (No Local Downloading)
-        const output = await ytDlp(videoUrl, {
-            dumpSingleJson: true,
-            noWarnings: true,
-            preferFreeFormats: true,
-            youtubeSkipDashManifest: true,
+        // 🔍 YouTube එකෙන් වීඩියෝ එකේ විස්තර සහ සේරම Formats ලබා ගැනීම
+        const info = await ytdl.getInfo(videoUrl);
+        
+        // 🎵 තියෙන Formats වලින් හොඳම Audio-Only (MP3/M4A) Direct Link එක තෝරාගැනීම
+        const format = ytdl.chooseFormat(info.formats, { 
+            quality: 'highestaudio', 
+            filter: 'audioonly' 
         });
 
-        // 🎵 තියෙන Format වලින් Audio (vcodec === 'none') විතරක් ෆිල්ටර් කර හොඳම එක ගැනීම
-        const audioFormats = output.formats.filter(f => f.vcodec === 'none' && f.acodec !== 'none');
-        const bestAudio = audioFormats[audioFormats.length - 1]; 
-
-        // ❌ Audio Format එකක් සෙට් වුනේ නැත්නම්
-        if (!bestAudio || !bestAudio.url) {
-            throw new Error("Could not find a valid direct audio stream download URL.");
+        // ❌ Direct Link එකක් සෙට් වුනේ නැත්නම්
+        if (!format || !format.url) {
+            throw new Error("Could not find a valid audio stream URL.");
         }
 
         const latency = Date.now() - startTime;
+        const title = info.videoDetails.title || "Unknown Title";
 
-        // 📝 උඹ ඉල්ලපු විදිහටම ලස්සනට සකස් කරපු JSON Response එක
+        // 📝 ලස්සනට සකස් කරපු JSON Response එක
         res.json({
             status: true,
             creator: "Pathum Rajapaksha",
             latency_ms: latency,
             data: {
-                title: output.title || "Unknown Title",
-                thumbnail: output.thumbnail || "https://images.unsplash.com/photo-1611162617213-7d7a39e9b1d7",
-                duration: output.duration_string || "00:00",
-                views: output.view_count || 0,
-                download_url: bestAudio.url, // මේක තමයි සිරාම Direct MP3/Audio ලින්ක් එක
-                filename: `${output.title || 'audio'}.mp3`
+                title: title,
+                thumbnail: info.videoDetails.thumbnails[0]?.url || "https://images.unsplash.com/photo-1611162617213-7d7a39e9b1d7",
+                duration: info.videoDetails.lengthSeconds ? `${Math.floor(info.videoDetails.lengthSeconds / 60)}m ${info.videoDetails.lengthSeconds % 60}s` : "00:00",
+                views: parseInt(info.videoDetails.viewCount) || 0,
+                download_url: format.url, // මේක තමයි සිරාම Direct MP3 Download/Stream ලින්ක් එක
+                filename: `${title}.mp3`
             }
         });
 
     } catch (error) {
-        console.error("API Error: ", error.message);
+        console.error("Vercel API Error: ", error.message);
         res.status(500).json({
             status: false,
             creator: "Pathum Rajapaksha",
-            error: "Failed to process YouTube Video. Active link එකක්දැයි පරීක්ෂා කරන්න.",
+            error: "Failed to process YouTube Video via Vercel Serverless.",
             details: error.message
         });
     }
@@ -104,12 +102,11 @@ app.get('/api/ytmp3', async (req, res) => {
 // =========================================================================
 // 🚀 3. EXPORT / LISTEN (Vercel Serverless සපෝට් එක සඳහා)
 // =========================================================================
-// Local පරිගණකයේ Run කරද්දී පාවිච්චි වෙන්න (Vercel එකට මේක ඕන වෙන්නේ නැත)
 if (process.env.NODE_ENV !== 'production') {
     app.listen(PORT, () => {
         console.log(`🚀 API is running locally on http://localhost:${PORT}`);
     });
 }
 
-// Vercel එක කියවන්න මේක අනිවාර්යයෙන්ම ඕනේ මචං!
+// වර්සෙල් එකට මේක අනිවාර්යයෙන්ම ඕනේ මචං!
 module.exports = app;
